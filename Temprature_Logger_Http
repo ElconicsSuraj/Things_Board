@@ -1,0 +1,99 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#define ONE_WIRE_BUS 5
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
+#include <WiFiManager.h>
+
+
+// Replace with your target URL
+String serverName = "https://devices.antzsystems.com/api/v1/dv9CTlM8Gckh4jRFY0rG/telemetry"; 
+// curl -v -X POST http://devices.dev.antzsystems.com:8080/api/v1/8424r7gtag50bg2m7ybk/telemetry --header Content-Type:application/json --data "{temperature:25}"
+// curl -v -X POST http://devices.antzsystems.com:8080/api/v1/dv9CTlM8Gckh4jRFY0rG/telemetry --header Content-Type:application/json --data "{temperature:25}"
+// curl -v -X POST https://devices.antzsystems.com/api/v1/dv9CTlM8Gckh4jRFY0rG/telemetry --header Content-Type:application/json --data "{temperature:98}"
+void setup() {
+  // Initialize serial communication
+  Serial.begin(115200);
+   WiFiManager manager;   
+    
+    
+
+   WiFi.mode(WIFI_STA);
+
+    delay(1000);
+
+    String mac = WiFi.macAddress();
+    const char* mac_id = mac.c_str();
+
+
+
+     String device_name =  WiFi.macAddress();
+      
+    bool success = manager.autoConnect(device_name.c_str(),"1234567890");
+ 
+    if(success==0) {
+        Serial.println("Failed to connect");
+    } 
+    else {
+        Serial.println("Connected");
+    }
+  
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi");
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) { // Check WiFi connection status
+
+    HTTPClient http;
+
+    // Specify the content type and server URL
+    http.begin(serverName);
+    http.addHeader("Content-Type", "application/json");
+
+    // JSON data payload
+
+
+ float VAL = sensors.getTempCByIndex(0);
+ 
+
+
+
+
+ sensors.requestTemperatures(); // Send the command to get temperatures
+
+ Serial.println(VAL);
+   
+     String postData = "{\"temperature\":" + String(VAL) + "}";
+
+    // Send HTTP POST request
+    int httpResponseCode = http.POST(postData);
+
+    // Check the response code
+    if (httpResponseCode > 0) {
+      String response = http.getString();  // Get the response payload
+      Serial.println(httpResponseCode);    // Print the response code
+      Serial.println(response);            // Print the response
+    } else {
+      Serial.print("Error on sending POST: ");
+      Serial.println(httpResponseCode);
+    }
+
+    // Close the connection
+    http.end();
+  } else {
+    Serial.println("Error in WiFi connection");
+  }
+
+  delay(10000);  // Delay between each request (10 seconds in this case)
+}
+
+
+
